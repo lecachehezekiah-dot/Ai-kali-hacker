@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <title>🤖 AI Kali Sandbox</title>
+    <style>
+        body { font-family: 'JetBrains Mono', monospace; background: #0a0a0a; color: #00ff88; margin: 0; padding: 20px; }
+        .terminal { background: #000; color: #00ff00; padding: 20px; border-radius: 10px; font-size: 14px; }
+        .btn { background: #ff0055; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; margin: 5px; }
+        .btn:hover { background: #cc0044; }
+        .vnc-frame { width: 100%; height: 70vh; border: 2px solid #333; border-radius: 10px; }
+        .sandbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🤖 <span style="color:#ff0055">AI HACKING SANDBOX</span> - surf.e2b.dev Clone</h1>
+    
+    <div class="sandbox-grid">
+        <div>
+            <h3>🎯 AI Hacker Chat</h3>
+            <div id="chat" class="terminal" style="height: 300px; overflow-y: scroll;"></div>
+            <input id="query" placeholder="nmap -sV 10.0.0.0/24, msfconsole eternalblue, nuclei scan..." style="width:70%; background:#111; color:#00ff88; border:1px solid #333; padding:10px;">
+            <button class="btn" onclick="sendHack()">HACK</button>
+        </div>
+        
+        <div>
+            <h3>🖥️ Live Desktop</h3>
+            <button class="btn" onclick="startSandbox('ubuntu')">Ubuntu Desktop</button>
+            <button class="btn" onclick="startSandbox('kali')">Kali Linux</button>
+            <iframe id="vnc" class="vnc-frame" style="display:none;"></iframe>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let currentSession = null;
+        
+        function addMessage(msg, type='user') {
+            document.getElementById('chat').innerHTML += `<div style="color:${type=='ai'?'#ffaa00':'#00ff88'}">[AI] ${msg}</div>`;
+            document.getElementById('chat').scrollTop = document.getElementById('chat').scrollHeight;
+        }
+        
+        async function startSandbox(distro) {
+            const res = await fetch(`/sandbox/${distro}`);
+            const data = await res.json();
+            currentSession = data.session_id;
+            document.getElementById('vnc').src = data.vnc_port ? `/vnc_proxy?port=${data.vnc_port}` : '';
+            document.getElementById('vnc').style.display = 'block';
+            addMessage(`Started ${distro.toUpperCase()} sandbox: ${data.session_id}`);
+        }
+        
+        async function sendHack() {
+            const query = document.getElementById('query').value;
+            addMessage(query);
+            socket.emit('hack', {query, session: currentSession});
+            document.getElementById('query').value = '';
+        }
+        
+        socket.on('hack_result', data => {
+            addMessage(`ANALYSIS: ${data.plan.analysis}`);
+            addMessage(`CMD: ${data.plan.command}`);
+            addMessage(`OUTPUT:\n${data.output}`);
+            document.getElementById('vnc').src = data.vnc;
+        });
+    </script>
+</body>
+              </html>
+  
